@@ -1,6 +1,6 @@
 use std::{fs::canonicalize, path::Path};
 
-use ignore::{Walk, WalkBuilder, WalkState};
+use ignore::{WalkBuilder, WalkState};
 
 fn main() {
     let from_file = std::env::args().nth(1).expect("no start path given");
@@ -11,7 +11,10 @@ fn main() {
 
     let pwd = &std::env::current_dir().unwrap();
 
-    for ret in Walk::new(from_dir) {
+    for ret in WalkBuilder::new(from_dir)
+        .sort_by_file_path(Path::cmp)
+        .build()
+    {
         let entry = ret.unwrap();
         if entry.file_type().unwrap().is_file() {
             println!("{}", entry.path().strip_prefix(pwd).unwrap().display());
