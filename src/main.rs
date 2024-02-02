@@ -8,8 +8,7 @@ fn main() {
     assert!(from_file.is_file());
     let from_dir = from_file.parent().unwrap();
     assert!(from_dir.is_dir());
-    let git_dir = &canonicalize(".git").unwrap();
-    assert!(git_dir.is_dir());
+    let git_dir = &canonicalize(".git").ok();
 
     let pwd = &std::env::current_dir().unwrap();
 
@@ -19,8 +18,11 @@ fn main() {
         .build()
     {
         let entry = ret.unwrap();
-        if entry.file_type().unwrap().is_file() && !entry.path().starts_with(git_dir) {
-            println!("{}", entry.path().strip_prefix(pwd).unwrap().display());
+        if entry.file_type().unwrap().is_file() {
+            match git_dir {
+                Some(git_dir) if entry.path().starts_with(git_dir) => {}
+                _ => println!("{}", entry.path().strip_prefix(pwd).unwrap().display()),
+            }
         }
     }
 
@@ -28,11 +30,11 @@ fn main() {
     walker.run(|| {
         Box::new(move |ret| match ret {
             Ok(entry) => {
-                if entry.file_type().unwrap().is_file()
-                    && !entry.path().starts_with(git_dir)
-                    && !entry.path().starts_with(from_dir)
-                {
-                    println!("{}", entry.path().strip_prefix(pwd).unwrap().display());
+                if entry.file_type().unwrap().is_file() && !entry.path().starts_with(from_dir) {
+                    match git_dir {
+                        Some(git_dir) if entry.path().starts_with(git_dir) => {}
+                        _ => println!("{}", entry.path().strip_prefix(pwd).unwrap().display()),
+                    }
                 }
                 WalkState::Continue
             }
